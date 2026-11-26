@@ -1,0 +1,176 @@
+# Sample requests for the Banking Transactions API.
+# Open in VS Code with the "REST Client" extension (humao.rest-client) and click
+# "Send Request" above each request. Start the server first: demo/run.sh or demo\run.bat
+# (with demo data loaded, the account examples below return data immediately).
+
+@baseUrl = http://localhost:3000
+
+### ---------------------------------------------------------------------------
+### Task 1: core endpoints
+### ---------------------------------------------------------------------------
+
+### Create a deposit -> 201
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "toAccount": "ACC-12345",
+  "amount": 500,
+  "currency": "USD",
+  "type": "deposit"
+}
+
+### Create a transfer -> 201 (example from TASKS.md)
+# @name createTransfer
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "fromAccount": "ACC-12345",
+  "toAccount": "ACC-67890",
+  "amount": 100.50,
+  "currency": "USD",
+  "type": "transfer"
+}
+
+### Create a withdrawal -> 201
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "fromAccount": "ACC-12345",
+  "amount": 20,
+  "currency": "USD",
+  "type": "withdrawal"
+}
+
+### Withdrawal larger than the balance -> 201 with "status": "failed"
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "fromAccount": "ACC-12345",
+  "amount": 1000000,
+  "currency": "USD",
+  "type": "withdrawal"
+}
+
+### List all transactions -> 200
+GET {{baseUrl}}/transactions
+
+### Get the transfer created above by id -> 200
+GET {{baseUrl}}/transactions/{{createTransfer.response.body.id}}
+
+### Get a seeded transaction by id -> 200
+GET {{baseUrl}}/transactions/tx-0003
+
+### Unknown transaction id -> 404
+GET {{baseUrl}}/transactions/does-not-exist
+
+### Account balance (per currency) -> 200
+GET {{baseUrl}}/accounts/ACC-12345/balance
+
+### Unknown account -> 404
+GET {{baseUrl}}/accounts/ACC-00000/balance
+
+### ---------------------------------------------------------------------------
+### Task 2: validation errors -> 400
+### ---------------------------------------------------------------------------
+
+### Negative amount and invalid currency (example from TASKS.md)
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "fromAccount": "ACC-12345",
+  "toAccount": "ACC-67890",
+  "amount": -5,
+  "currency": "XYZ",
+  "type": "transfer"
+}
+
+### More than 2 decimal places, bad account format, unknown type
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "fromAccount": "12345",
+  "toAccount": "ACC-678",
+  "amount": 10.555,
+  "currency": "USD",
+  "type": "refund"
+}
+
+### Transfer to the same account
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "fromAccount": "ACC-12345",
+  "toAccount": "ACC-12345",
+  "amount": 10,
+  "currency": "USD",
+  "type": "transfer"
+}
+
+### Body is not valid JSON
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+this is not json
+
+### ---------------------------------------------------------------------------
+### Task 3: filtering
+### ---------------------------------------------------------------------------
+
+### By account (as sender or receiver)
+GET {{baseUrl}}/transactions?accountId=ACC-12345
+
+### By type
+GET {{baseUrl}}/transactions?type=transfer
+
+### By date range (both days inclusive)
+GET {{baseUrl}}/transactions?from=2024-01-01&to=2024-01-31
+
+### Combined filters
+GET {{baseUrl}}/transactions?accountId=ACC-12345&type=deposit&from=2024-01-01&to=2024-12-31
+
+### Invalid filters -> 400
+GET {{baseUrl}}/transactions?accountId=bad&type=refund&from=yesterday
+
+### ---------------------------------------------------------------------------
+### Task 4: additional features
+### ---------------------------------------------------------------------------
+
+### A. Account summary -> 200
+GET {{baseUrl}}/accounts/ACC-12345/summary
+
+### B. Simple interest: 5% per year for 30 days -> 200
+GET {{baseUrl}}/accounts/ACC-12345/interest?rate=0.05&days=30
+
+### B. Invalid interest parameters -> 400
+GET {{baseUrl}}/accounts/ACC-12345/interest?rate=5&days=0
+
+### C. Export all transactions as CSV -> 200 text/csv
+GET {{baseUrl}}/transactions/export?format=csv
+
+### C. Export with filters
+GET {{baseUrl}}/transactions/export?format=csv&accountId=ACC-12345&from=2024-01-01&to=2024-01-31
+
+### C. Unsupported format -> 400
+GET {{baseUrl}}/transactions/export?format=xml
+
+### D. Rate limiting: every response has X-RateLimit-Limit / X-RateLimit-Remaining
+### headers. Send more than 100 requests in a minute to get 429 Too Many Requests
+### (see demo/sample-requests.sh, which does this automatically).
+GET {{baseUrl}}/transactions?type=deposit
+
+### ---------------------------------------------------------------------------
+### Error handling
+### ---------------------------------------------------------------------------
+
+### Unknown route -> 404 JSON
+GET {{baseUrl}}/unknown
+
+### Wrong method -> 405 JSON
+DELETE {{baseUrl}}/transactions
