@@ -206,6 +206,55 @@ def calculate_summary(transactions: list[Transaction], account_id: str) -> dict:
     return summary
 
 
+DAYS_PER_YEAR = 365
+MAX_INTEREST_RATE = Decimal(1)  # rate is a fraction: 0.05 means 5% per year
+MAX_INTEREST_DAYS = 3650        # 10 years
+
+
+def parse_interest_params(args: Mapping[str, str]) -> tuple[Decimal | None, int | None, list[dict]]:
+    """Read and validate the rate and days query parameters."""
+    errors: list[dict] = []
+    rate = days = None
+
+    raw_rate = args.get("rate")
+    if raw_rate is None:
+        errors.append({"field": "rate", "message": "rate is required (e.g. 0.05 for 5%)"})
+    else:
+        try:
+            rate = Decimal(raw_rate)
+        except ArithmeticError:  # decimal.InvalidOperation
+            rate = None
+        if rate is None or not rate.is_finite() or not (0 <= rate <= MAX_INTEREST_RATE):
+            errors.append({"field": "rate", "message":
+                           f"rate must be a number between 0 and {MAX_INTEREST_RATE} (e.g. 0.05 for 5%)"})
+            rate = None
+
+    raw_days = args.get("days")
+    if raw_days is None:
+        errors.append({"field": "days", "message": "days is required"})
+    # isdecimal(), unlike isdigit(), rejects characters int() can't parse (e.g. "²").
+    elif not raw_days.isdecimal() or not (1 <= int(raw_days) <= MAX_INTEREST_DAYS):
+        errors.append({"field": "days",
+                       "message": f"days must be a whole number between 1 and {MAX_INTEREST_DAYS}"})
+    else:
+        days = int(raw_days)
+
+    return rate, days, errors
+
+
+def calculate_interest(balances: Mapping[str, Decimal], rate: Decimal, days: int) -> dict[str, dict]:
+    """Simple interest per currency: balance * rate * days / 365, rounded to cents."""
+    result = {}
+    for currency, balance in balances.items():
+        interest = balance * rate * days / DAYS_PER_YEAR
+        result[currency] = {
+            "balance": money(balance),
+            "interest": money(interest),
+            "projectedBalance": money(balance + interest),
+        }
+    return result
+
+
 def has_sufficient_funds(transactions: Iterable[Transaction], account_id: str,
                          currency: str, amount: float | int) -> bool:
     """True if the account's completed balance in currency covers amount."""

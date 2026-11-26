@@ -1,14 +1,17 @@
 """/accounts endpoints."""
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from src.utils.helpers import (
+    DAYS_PER_YEAR,
     account_transactions,
     calculate_balances,
+    calculate_interest,
     calculate_summary,
     error_response,
     get_store,
     money,
+    parse_interest_params,
     validation_error,
 )
 from src.validators import is_valid_account
@@ -52,3 +55,23 @@ def get_summary(account_id: str):
         return error
 
     return jsonify({"accountId": account_id, **calculate_summary(transactions, account_id)})
+
+
+@accounts_bp.get("/<account_id>/interest")
+def get_interest(account_id: str):
+    transactions, error = _load_account(account_id)
+    if error:
+        return error
+
+    rate, days, errors = parse_interest_params(request.args)
+    if errors:
+        return validation_error(errors, error="Invalid query parameters")
+
+    balances = calculate_balances(transactions, account_id)
+    return jsonify({
+        "accountId": account_id,
+        "rate": float(rate),
+        "days": days,
+        "formula": f"balance * rate * days / {DAYS_PER_YEAR}",
+        "interest": calculate_interest(balances, rate, days),
+    })
