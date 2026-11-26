@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
@@ -128,6 +130,32 @@ def parse_filters(args: Mapping[str, str]) -> tuple[TransactionFilters, list[dic
 def filter_transactions(transactions: Iterable[Transaction],
                         filters: TransactionFilters) -> list[Transaction]:
     return [tx for tx in transactions if filters.matches(tx)]
+
+
+# --- CSV export --------------------------------------------------------------
+
+CSV_COLUMNS = ("id", "fromAccount", "toAccount", "amount", "currency", "type", "timestamp", "status")
+# Spreadsheet apps run cells starting with these as formulas (CSV injection).
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_cell(value: object) -> str:
+    if value is None:
+        return ""
+    text = str(value)
+    return "'" + text if text.startswith(_FORMULA_PREFIXES) else text
+
+
+def transactions_to_csv(transactions: Iterable[Transaction]) -> str:
+    """RFC 4180 CSV (CRLF line endings) with a header row in spec field order."""
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(CSV_COLUMNS)
+    for tx in transactions:
+        row = tx.to_dict()
+        row["amount"] = f"{tx.amount:.2f}"
+        writer.writerow(_csv_cell(row[column]) for column in CSV_COLUMNS)
+    return buffer.getvalue()
 
 
 # --- Money -------------------------------------------------------------------

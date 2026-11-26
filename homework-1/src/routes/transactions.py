@@ -1,6 +1,8 @@
 """/transactions endpoints."""
 
-from flask import Blueprint, jsonify, request, url_for
+from datetime import datetime, timezone
+
+from flask import Blueprint, Response, jsonify, request, url_for
 
 from src.models import Transaction
 from src.utils.helpers import (
@@ -9,6 +11,7 @@ from src.utils.helpers import (
     get_store,
     has_sufficient_funds,
     parse_filters,
+    transactions_to_csv,
     validation_error,
 )
 from src.validators import validate_transaction
@@ -61,6 +64,32 @@ def list_transactions():
 
     transactions = filter_transactions(get_store().all(), filters)
     return jsonify([tx.to_dict() for tx in transactions])
+
+
+EXPORT_FORMATS = ("csv",)
+
+
+# Defined before /<transaction_id> for readability; Werkzeug already matches
+# the static "/export" path ahead of the variable one.
+@transactions_bp.get("/export")
+def export_transactions():
+    export_format = request.args.get("format", "csv").lower()
+    errors = []
+    if export_format not in EXPORT_FORMATS:
+        errors.append({"field": "format",
+                       "message": f"format must be one of: {', '.join(EXPORT_FORMATS)}"})
+    filters, filter_errors = parse_filters(request.args)
+    errors += filter_errors
+    if errors:
+        return validation_error(errors, error="Invalid query parameters")
+
+    transactions = filter_transactions(get_store().all(), filters)
+    filename = f"transactions-{datetime.now(timezone.utc):%Y%m%d-%H%M%S}.csv"
+    return Response(
+        transactions_to_csv(transactions),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @transactions_bp.get("/<transaction_id>")
