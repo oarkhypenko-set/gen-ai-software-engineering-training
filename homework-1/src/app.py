@@ -18,6 +18,7 @@ from werkzeug.exceptions import HTTPException
 from src.models import TRANSACTION_STATUSES, Transaction, TransactionStore
 from src.routes import accounts_bp, transactions_bp
 from src.utils.helpers import STORE_KEY, parse_timestamp
+from src.utils.rate_limiter import init_rate_limiter
 from src.validators import validate_transaction
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,9 @@ def create_app(config: dict | None = None) -> Flask:
         MAX_CONTENT_LENGTH=1024 * 1024,  # 1 MB request bodies are plenty
         SEED_DATA=os.environ.get("SEED_DATA") == "1",
         SEED_DATA_FILE=os.environ.get("SEED_DATA_FILE", str(DEFAULT_SEED_FILE)),
+        RATE_LIMIT_ENABLED=True,
+        RATE_LIMIT=int(os.environ.get("RATE_LIMIT", "100")),  # requests per window per IP
+        RATE_LIMIT_WINDOW=60,  # seconds
     )
     if config:
         app.config.update(config)
@@ -42,6 +46,7 @@ def create_app(config: dict | None = None) -> Flask:
     store = TransactionStore()
     app.extensions[STORE_KEY] = store
 
+    init_rate_limiter(app)
     app.register_blueprint(transactions_bp)
     app.register_blueprint(accounts_bp)
     _register_error_handlers(app)
