@@ -53,8 +53,8 @@ Step 1 - Setup
 Step 2 - Model and storage (src/models/transaction.py)
   - Transaction dataclass; to_dict() returns camelCase fields:
     id, fromAccount, toAccount, amount, currency, type, timestamp, status
-  - id = uuid4, timestamp = UTC ISO 8601, status = "completed" on creation
-  - Store: dict keyed by id + threading.Lock
+  - id = uuid4, timestamp = UTC ISO 8601, status = "completed" by default
+  - Store: dict keyed by id + threading.RLock; atomic() for check-then-add
 
 Step 3 - Validation (src/validators/transaction_validator.py)
   - validate_transaction(payload) -> list of {field, message}; all errors
@@ -70,6 +70,10 @@ Step 3 - Validation (src/validators/transaction_validator.py)
 
 Step 4 - Core routes
   - POST /transactions          -> 201 + transaction | 400 + details
+      no overdrafts: a withdrawal/transfer larger than the sender's
+      completed balance in that currency is saved with status "failed"
+      (still 201); failed transactions never affect balances
+      check + save run under the store lock (safe for concurrent requests)
   - GET  /transactions          -> 200 + filtered list
       accountId matches fromAccount OR toAccount
       type must be valid

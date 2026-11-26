@@ -65,7 +65,15 @@ class TransactionStore:
 
     def __init__(self) -> None:
         self._items: dict[str, Transaction] = {}
-        self._lock = threading.Lock()
+        # Reentrant so atomic() blocks can call the other methods.
+        self._lock = threading.RLock()
+
+    def atomic(self) -> threading.RLock:
+        """Lock for check-then-add sequences, e.g. a balance check before saving.
+
+        Usage: ``with store.atomic(): ...``
+        """
+        return self._lock
 
     def add(self, transaction: Transaction) -> Transaction:
         with self._lock:
