@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify
 from src.utils.helpers import (
     account_transactions,
     calculate_balances,
+    calculate_summary,
     error_response,
     get_store,
     money,
@@ -42,3 +43,12 @@ def get_balance(account_id: str):
         "accountId": account_id,
         "balances": {currency: money(amount) for currency, amount in balances.items()},
     })
+
+
+@accounts_bp.get("/<account_id>/summary")
+def get_summary(account_id: str):
+    transactions, error = _load_account(account_id)
+    if error:
+        return error
+
+    return jsonify({"accountId": account_id, **calculate_summary(transactions, account_id)})

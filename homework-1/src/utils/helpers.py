@@ -10,7 +10,7 @@ from typing import Iterable, Mapping
 
 from flask import current_app, jsonify
 
-from src.models import TRANSACTION_TYPES, Transaction, TransactionStore
+from src.models import TRANSACTION_STATUSES, TRANSACTION_TYPES, Transaction, TransactionStore
 from src.validators import is_valid_account
 
 STORE_KEY = "transaction_store"
@@ -162,6 +162,48 @@ def calculate_balances(transactions: Iterable[Transaction], account_id: str) -> 
         if tx.from_account == account_id:
             balances[tx.currency] -= amount
     return dict(sorted(balances.items()))
+
+
+def calculate_summary(transactions: list[Transaction], account_id: str) -> dict:
+    """Totals per currency (completed transactions only) plus activity stats.
+
+    Deposits and withdrawals are counted by transaction type; transfers are
+    reported separately as money in/out, so the four totals together explain
+    the balance: deposits + transfersIn - withdrawals - transfersOut.
+    """
+    totals = {key: defaultdict(Decimal) for key in
+              ("totalDeposits", "totalWithdrawals", "totalTransfersIn", "totalTransfersOut")}
+    currencies: set[str] = set()
+
+    for tx in transactions:
+        if tx.status != "completed":
+            continue
+        currencies.add(tx.currency)
+        amount = to_decimal(tx.amount)
+        if tx.type == "deposit":
+            totals["totalDeposits"][tx.currency] += amount
+        elif tx.type == "withdrawal":
+            totals["totalWithdrawals"][tx.currency] += amount
+        elif tx.to_account == account_id:
+            totals["totalTransfersIn"][tx.currency] += amount
+        else:
+            totals["totalTransfersOut"][tx.currency] += amount
+
+    status_counts = {status: 0 for status in TRANSACTION_STATUSES}
+    for tx in transactions:
+        status_counts[tx.status] = status_counts.get(tx.status, 0) + 1
+
+    most_recent = max(transactions, key=lambda tx: parse_timestamp(tx.timestamp), default=None)
+
+    # Every currency appears in every total (0.0 when unused) for easy comparison.
+    summary = {
+        key: {currency: money(values[currency]) for currency in sorted(currencies)}
+        for key, values in totals.items()
+    }
+    summary["transactionCount"] = len(transactions)
+    summary["transactionCountByStatus"] = status_counts
+    summary["mostRecentTransactionDate"] = most_recent.timestamp if most_recent else None
+    return summary
 
 
 def has_sufficient_funds(transactions: Iterable[Transaction], account_id: str,
