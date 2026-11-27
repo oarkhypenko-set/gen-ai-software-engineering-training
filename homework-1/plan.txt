@@ -2,7 +2,7 @@ HOMEWORK 1 - BANKING TRANSACTIONS API - IMPLEMENTATION PLAN
 ============================================================
 
 Stack:  Python 3.14 + Flask 3.1 (already installed in .venv)
-Branch: hw1
+Branch: homework-1-submission
 Port:   3000 (matches the curl examples in TASKS.md)
 
 
@@ -123,4 +123,4 @@ Step 8 - Demo and documentation
 
 Step 9 - Finish
   - Run the test suite, try the demo requests by hand
-  - Commit on branch hw1 and open a Pull Request with a summary
+  - Commit on branch homework-1-submission and open a Pull Request with a summary

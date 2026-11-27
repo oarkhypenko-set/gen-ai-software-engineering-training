@@ -246,7 +246,7 @@ The project was built with **Claude Code** in VS Code, step by step:
    saved as [plan.txt](plan.txt) and adjusted (Flask; all four optional features).
 2. **Implementation in small steps**: one prompt per plan step (setup, model, validation,
    routes, app factory, each optional feature, tests, docs), each reviewed and committed
-   separately on the `hw1` branch.
+   separately on the `homework-1-submission` branch.
 3. **Testing each step**: after every step Claude ran the code against real requests
    before committing, which caught several bugs early:
    - a `type` sent as a JSON list crashed the validator (unhashable dict key);
