@@ -215,7 +215,8 @@ homework-1/
 ├── demo/
 │   ├── run.sh, run.bat       # set up .venv and start the server
 │   ├── sample-requests.http  # for the VS Code REST Client extension
-│   ├── sample-requests.sh    # the same requests with curl
+│   ├── sample-requests.sh    # the same requests with curl (bash)
+│   ├── sample-requests.bat   # the same requests with curl.exe (Windows cmd)
 │   └── sample-data.json      # 13 demo transactions, 4 accounts, 4 currencies
 └── docs/screenshots/
 ```

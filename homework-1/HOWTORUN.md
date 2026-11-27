@@ -117,6 +117,15 @@ curl -X POST http://localhost:3000/transactions \
 ./demo/sample-requests.sh --no-rate-limit   # skip the rate-limit demo
 ```
 
+On Windows (Command Prompt or PowerShell):
+
+```bat
+demo\sample-requests.bat
+demo\sample-requests.bat --no-rate-limit
+```
+
+The Windows script uses `curl.exe`, which is built into Windows 10 (version 1803) and later.
+
 Each request prints its status code and response body. Best run right after a fresh start
 with demo data.
 
