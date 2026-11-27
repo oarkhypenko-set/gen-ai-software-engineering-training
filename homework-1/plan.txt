@@ -1,0 +1,126 @@
+HOMEWORK 1 - BANKING TRANSACTIONS API - IMPLEMENTATION PLAN
+============================================================
+
+Stack:  Python 3.14 + Flask 3.1 (already installed in .venv)
+Branch: homework-1-submission
+Port:   3000 (matches the curl examples in TASKS.md)
+
+
+REQUIREMENTS (from TASKS.md)
+----------------------------
+1. Endpoints: POST /transactions, GET /transactions, GET /transactions/:id,
+   GET /accounts/:accountId/balance
+2. Validation: amount positive with max 2 decimals; accounts match ACC-XXXXX
+   (alphanumeric); currency is a valid ISO 4217 code; errors returned as
+   {"error": "Validation failed", "details": [{"field", "message"}]}
+3. Filtering on GET /transactions: accountId, type, from/to date range,
+   combinable
+4. Extra features: ALL of A (summary), B (interest), C (CSV export),
+   D (rate limiting)
+5. In-memory storage, HTTP codes 200/201/400/404 (+429), basic error handling
+6. Deliverables: README.md, HOWTORUN.md, .gitignore, demo/ files,
+   docs/screenshots/
+
+
+PROJECT STRUCTURE
+-----------------
+homework-1/
+  requirements.txt
+  .gitignore
+  src/
+    app.py                          - create_app(), blueprints, JSON error handlers
+    models/transaction.py           - Transaction dataclass + in-memory store
+    routes/transactions.py          - /transactions endpoints (+ export)
+    routes/accounts.py              - /accounts endpoints (balance, summary, interest)
+    validators/transaction_validator.py
+    utils/currencies.py             - ISO 4217 code set
+    utils/helpers.py                - date parsing, filtering, balance math
+    utils/rate_limiter.py           - per-IP sliding-window limiter
+  tests/                            - pytest suite
+  demo/
+    run.sh, run.bat
+    sample-requests.http
+    sample-data.json
+  docs/screenshots/
+
+
+STEPS
+-----
+Step 1 - Setup
+  - requirements.txt (flask, pytest)
+  - .gitignore: .venv/, __pycache__/, *.pyc, .env, .pytest_cache/
+
+Step 2 - Model and storage (src/models/transaction.py)
+  - Transaction dataclass; to_dict() returns camelCase fields:
+    id, fromAccount, toAccount, amount, currency, type, timestamp, status
+  - id = uuid4, timestamp = UTC ISO 8601, status = "completed" by default
+  - Store: dict keyed by id + threading.RLock; atomic() for check-then-add
+
+Step 3 - Validation (src/validators/transaction_validator.py)
+  - validate_transaction(payload) -> list of {field, message}; all errors
+    are collected and reported together
+  - Body must be a JSON object, otherwise 400
+  - amount: number (not bool), > 0, max 2 decimals (checked via Decimal)
+  - type: one of deposit | withdrawal | transfer
+  - accounts: regex ^ACC-[A-Za-z0-9]{5}$; required fields by type:
+      deposit    -> toAccount
+      withdrawal -> fromAccount
+      transfer   -> both, and they must differ
+  - currency: uppercased, must be in the ISO 4217 set
+
+Step 4 - Core routes
+  - POST /transactions          -> 201 + transaction | 400 + details
+      no overdrafts: a withdrawal/transfer larger than the sender's
+      completed balance in that currency is saved with status "failed"
+      (still 201); failed transactions never affect balances
+      check + save run under the store lock (safe for concurrent requests)
+  - GET  /transactions          -> 200 + filtered list
+      accountId matches fromAccount OR toAccount
+      type must be valid
+      from/to: ISO date or datetime; date-only "to" includes the whole day
+      invalid filter values -> 400
+  - GET  /transactions/<id>     -> 200 | 404
+  - GET  /accounts/<id>/balance -> 200 with per-currency balances
+      completed only: deposits and incoming transfers add, withdrawals
+      and outgoing transfers subtract; no currency conversion
+      invalid account format -> 400
+
+Step 5 - App factory and errors (src/app.py)
+  - create_app() registers blueprints and the rate limiter
+  - JSON handlers for 400, 404, 405, 429, 500 (no HTML error pages)
+  - Optional seed from demo/sample-data.json when SEED_DATA=1
+
+Step 6 - Extra features (all four)
+  A. GET /accounts/<id>/summary
+     -> totalDeposits, totalWithdrawals, transactionCount,
+        mostRecentTransactionDate (per currency where amounts are involved)
+  B. GET /accounts/<id>/interest?rate=0.05&days=30
+     -> simple interest = balance * rate * days / 365, per currency
+     rate must be a number >= 0, days a positive integer; else 400
+  C. GET /transactions/export?format=csv
+     -> text/csv download; supports the same filters as the list endpoint
+     route is registered before /<id> so "export" is not read as an id
+     unsupported format -> 400
+  D. Rate limiting: 100 requests / minute / IP (in-memory sliding window)
+     -> 429 Too Many Requests with Retry-After header
+     limit configurable via app config (lowered in tests)
+
+Step 7 - Tests (tests/, pytest + Flask test client)
+  - Validators: valid and invalid cases for each field
+  - Each filter and combined filters; bad filter values
+  - Balance, summary and interest calculations
+  - CSV export content and headers
+  - Rate limiter returns 429 after the limit
+
+Step 8 - Demo and documentation
+  - demo/run.sh, demo/run.bat: create venv, install requirements, start server
+  - demo/sample-requests.http: every endpoint, including invalid requests
+  - demo/sample-data.json: seed transactions
+  - README.md: overview, features, architecture decisions, AI tools used
+  - HOWTORUN.md: step-by-step run and test instructions
+  - docs/screenshots/: captured manually by the student
+    (AI interactions, API running, sample requests/responses)
+
+Step 9 - Finish
+  - Run the test suite, try the demo requests by hand
+  - Commit on branch homework-1-submission and open a Pull Request with a summary

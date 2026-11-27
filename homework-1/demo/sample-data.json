@@ -1,0 +1,15 @@
+[
+  {"id": "tx-0001", "fromAccount": null, "toAccount": "ACC-12345", "amount": 5000.00, "currency": "USD", "type": "deposit", "timestamp": "2024-01-02T09:15:00Z", "status": "completed"},
+  {"id": "tx-0002", "fromAccount": null, "toAccount": "ACC-67890", "amount": 1200.00, "currency": "EUR", "type": "deposit", "timestamp": "2024-01-03T10:00:00Z", "status": "completed"},
+  {"id": "tx-0003", "fromAccount": "ACC-12345", "toAccount": "ACC-67890", "amount": 750.25, "currency": "USD", "type": "transfer", "timestamp": "2024-01-05T14:30:00Z", "status": "completed"},
+  {"id": "tx-0004", "fromAccount": "ACC-12345", "toAccount": null, "amount": 200.00, "currency": "USD", "type": "withdrawal", "timestamp": "2024-01-08T08:45:00Z", "status": "completed"},
+  {"id": "tx-0005", "fromAccount": null, "toAccount": "ACC-ABC12", "amount": 3000.00, "currency": "GBP", "type": "deposit", "timestamp": "2024-01-10T11:20:00Z", "status": "completed"},
+  {"id": "tx-0006", "fromAccount": "ACC-ABC12", "toAccount": "ACC-12345", "amount": 450.50, "currency": "GBP", "type": "transfer", "timestamp": "2024-01-15T16:05:00Z", "status": "completed"},
+  {"id": "tx-0007", "fromAccount": "ACC-67890", "toAccount": null, "amount": 99.99, "currency": "EUR", "type": "withdrawal", "timestamp": "2024-01-18T12:00:00Z", "status": "completed"},
+  {"id": "tx-0008", "fromAccount": "ACC-67890", "toAccount": "ACC-XYZ99", "amount": 300.00, "currency": "USD", "type": "transfer", "timestamp": "2024-01-22T09:30:00Z", "status": "completed"},
+  {"id": "tx-0009", "fromAccount": null, "toAccount": "ACC-XYZ99", "amount": 150000, "currency": "JPY", "type": "deposit", "timestamp": "2024-01-25T03:00:00Z", "status": "completed"},
+  {"id": "tx-0010", "fromAccount": "ACC-XYZ99", "toAccount": null, "amount": 1000.00, "currency": "USD", "type": "withdrawal", "timestamp": "2024-01-28T17:40:00Z", "status": "failed"},
+  {"id": "tx-0011", "fromAccount": "ACC-12345", "toAccount": "ACC-ABC12", "amount": 1000.00, "currency": "USD", "type": "transfer", "timestamp": "2024-02-01T10:10:00Z", "status": "pending"},
+  {"id": "tx-0012", "fromAccount": null, "toAccount": "ACC-12345", "amount": 250.00, "currency": "USD", "type": "deposit", "timestamp": "2024-02-05T13:25:00Z", "status": "completed"},
+  {"id": "tx-0013", "fromAccount": "ACC-ABC12", "toAccount": null, "amount": 500.00, "currency": "GBP", "type": "withdrawal", "timestamp": "2024-02-10T15:00:00Z", "status": "completed"}
+]
